@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32616.157
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FPPExport", "FPPExport\FPPExport.csproj", "{AE55515F-23EF-48F6-B1C7-B9F277E6AA18}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AE55515F-23EF-48F6-B1C7-B9F277E6AA18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE55515F-23EF-48F6-B1C7-B9F277E6AA18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE55515F-23EF-48F6-B1C7-B9F277E6AA18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE55515F-23EF-48F6-B1C7-B9F277E6AA18}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B5D5E3ED-1C3B-4F90-B64F-B85487A74066}
+	EndGlobalSection
+EndGlobal
