@@ -28,16 +28,18 @@ namespace FPPExport
             var offsetToChannelData = RoundUshortTo4((ushort)(fixedHeaderLength + mediaHeaderTotalLength));          
             string fseqFile = Path.ChangeExtension(_sequence.FileName, "fseq");
 
-            var fileSaveDialog = new SaveFileDialog();
-            fileSaveDialog.Filter = "FPP file|*.fseq";
-            fileSaveDialog.Title = "Select where to export to";
-            fileSaveDialog.FileName = Path.GetFileName(fseqFile);
-            fileSaveDialog.InitialDirectory = Vixen.Paths.SequencePath;
+            fseqFile = Path.Combine(Vixen.Paths.SequencePath, fseqFile);
+            var dialog = new UserForm(fseqFile);
 
-            if (fileSaveDialog.ShowDialog() == DialogResult.Cancel)
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                fseqFile = dialog.FilePath;
+            }
+            else
+            {
                 return;
-
-            fseqFile = fileSaveDialog.FileName;
+            }
+            
 
             //save the sequence
             using (var fileStream = new FileStream(fseqFile, FileMode.Create))
