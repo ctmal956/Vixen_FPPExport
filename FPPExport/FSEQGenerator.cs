@@ -35,8 +35,9 @@ namespace FPPExport
             _dataOffset += (uint)mediaHeader.Length;
 
             string fseqFile = Path.ChangeExtension(_sequence.FileName, "fseq");
+            fseqFile = Path.GetFileName(fseqFile);
 
-            fseqFile = Path.Combine(Vixen.Paths.ImportExportPath, fseqFile);
+            fseqFile = Path.Combine(folder, fseqFile);
             var dialog = new UserForm(fseqFile);
 
             if (dialog.ShowDialog() == DialogResult.OK)
@@ -185,18 +186,6 @@ namespace FPPExport
             }
             header[header.Length - 1] = (byte)0;
             return header;
-        }
-
-        // thanks to Vixen+ for these helper functions
-        private static uint RoundUIntTo4(uint i)
-        {
-            return (i % 4 == 0) ? i : i + 4 - (i % 4);
-        }
-
-
-        private static ushort RoundUshortTo4(ushort i)
-        {
-            return (ushort)(i % 4 == 0 ? i : i + 4 - (i % 4));
         }
 
         /*

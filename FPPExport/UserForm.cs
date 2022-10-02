@@ -23,7 +23,7 @@ namespace FPPExport
             fileSaveDialog.Filter = "FPP file|*.fseq";
             fileSaveDialog.Title = "Select where to export to";
             fileSaveDialog.FileName = textBoxFileName.Text;
-            fileSaveDialog.InitialDirectory = Vixen.Paths.SequencePath;
+            fileSaveDialog.InitialDirectory = textBoxFileName.Text;
 
             if (fileSaveDialog.ShowDialog() == DialogResult.OK)
                 textBoxFileName.Text = fileSaveDialog.FileName;

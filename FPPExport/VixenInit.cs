@@ -25,7 +25,7 @@ namespace FPPExport
                 return false;
             }
             var exporter = new FSEQGenerator(sequence);
-            exporter.ExportSequence(Paths.SequencePath);
+            exporter.ExportSequence(Paths.ImportExportPath);
             return false;
 
         }
