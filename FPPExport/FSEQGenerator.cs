@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,17 @@ namespace FPPExport
     internal class FSEQGenerator
     {
         EventSequence _sequence;
+
+        //FSEQ settings
+        private const byte _versionMinor = 0;
+        private const byte _versionMajor = 1;
+        private const UInt16 _fixedHeaderLength = 28;
+        private UInt32 _dataOffset = _fixedHeaderLength;
+        private Int32 _numOfChannels;
+        private Int32 _periods;
+        const ushort mediaHeaderSize = 5;
+
+
         public FSEQGenerator(EventSequence sequence)
         {
             _sequence = sequence;
@@ -18,17 +30,13 @@ namespace FPPExport
 
         public void ExportSequence(string folder)
         {
+            string mediaFile = _sequence.Audio == null ? "":_sequence.Audio.FileName;
+            byte[] mediaHeader = CreateMediaHeader(mediaFile);
+            _dataOffset += (uint)mediaHeader.Length;
 
-            // Initialize necessary variables
-            const ushort fixedHeaderLength = 28;
-            const ushort mediaHeaderSize = 5;
-
-            var mediaFileName = _sequence.Audio != null ? _sequence.Audio.FileName ?? "" : "";
-            var mediaHeaderTotalLength = mediaFileName.Length == 0 ? 0 : mediaFileName.Length + mediaHeaderSize;
-            var offsetToChannelData = RoundUshortTo4((ushort)(fixedHeaderLength + mediaHeaderTotalLength));          
             string fseqFile = Path.ChangeExtension(_sequence.FileName, "fseq");
 
-            fseqFile = Path.Combine(Vixen.Paths.SequencePath, fseqFile);
+            fseqFile = Path.Combine(Vixen.Paths.ImportExportPath, fseqFile);
             var dialog = new UserForm(fseqFile);
 
             if (dialog.ShowDialog() == DialogResult.OK)
@@ -39,7 +47,6 @@ namespace FPPExport
             {
                 return;
             }
-            
 
             //save the sequence
             using (var fileStream = new FileStream(fseqFile, FileMode.Create))
@@ -48,54 +55,94 @@ namespace FPPExport
                 {
                     // 0 - 3 - file identifier, must be 'PSEQ'
                     binaryWriter.Write("PSEQ".ToCharArray());
+
                     // 4 - 5 - Offset to start of channel data
-                    binaryWriter.Write(offsetToChannelData);
+                    binaryWriter.Write((byte)(_dataOffset % 256));
+                    binaryWriter.Write((byte)(_dataOffset/ 256));
+
                     // 6 - minor version, should be 0
-                    binaryWriter.Write((byte)0);
+                    binaryWriter.Write(_versionMinor);
                     // 7 - major version, should be 1
-                    binaryWriter.Write((byte)1);
+                    binaryWriter.Write(_versionMajor);
+
                     // 8 - 9 - fixed header length/ index to first variable header
-                    binaryWriter.Write(fixedHeaderLength);
+                    binaryWriter.Write((byte)(_fixedHeaderLength % 256));
+                    binaryWriter.Write((byte)(_fixedHeaderLength / 256));
+
                     // 10 - 13 - channel count per frame
-                    binaryWriter.Write((uint)_sequence.ChannelCount);
+                    Int32 channelCount = _sequence.ChannelCount;
+                    binaryWriter.Write((byte)(channelCount & 0xFF));
+                    binaryWriter.Write((byte)((channelCount >> 8) & 0xFF));
+                    binaryWriter.Write((byte)((channelCount >> 16) & 0xFF));
+                    binaryWriter.Write((byte)((channelCount >> 24) & 0xFF));
+
                     // 14 - 17 - number of frames
-                    binaryWriter.Write((uint)_sequence.TotalEventPeriods);
+                    Int32 framesCount = _sequence.TotalEventPeriods;
+                    binaryWriter.Write((byte)(framesCount & 0xFF));
+                    binaryWriter.Write((byte)((framesCount >> 8) & 0xFF));
+                    binaryWriter.Write((byte)((framesCount >> 16) & 0xFF));
+                    binaryWriter.Write((byte)((framesCount >> 24) & 0xFF));
+
                     // 18 - step time in ms, usually 25 or 50
-                    binaryWriter.Write((byte)_sequence.EventPeriod);
+                    binaryWriter.Write((byte)(_sequence.EventPeriod & 0xFF));
+
                     // 19 - bit flags / reserved should be 0
                     binaryWriter.Write((byte)0);
+
                     // 20 - 21 - universe count, ignored by FPP
-                    binaryWriter.Write((ushort)0);
+                    binaryWriter.Write((byte)0);
+                    binaryWriter.Write((byte)0);
+
                     // 22 - 23 - universe size, ignored by FPP
-                    binaryWriter.Write((ushort)0);
+                    binaryWriter.Write((byte)0);
+                    binaryWriter.Write((byte)0);
+
                     // 24 - gamma, should be 1, ignored by FPP
                     binaryWriter.Write((byte)1);
+
                     // 25 - color encoding, 2 for RGB, ignored by FPP
                     binaryWriter.Write((byte)2);
+
                     // 26 - 27 - reserved, should be 0
-                    binaryWriter.Write((ushort)0);
-                    // media data
-                    if (mediaHeaderTotalLength > 0)
+                    binaryWriter.Write((byte)0);
+                    binaryWriter.Write((byte)0);
+
+                    // media data - this part is not working right
+                    if (mediaHeader.Length > 0)
                     {
-                        binaryWriter.Write((ushort)(mediaHeaderTotalLength));
-                        binaryWriter.Write("mf".ToCharArray());
-                        binaryWriter.Write(mediaFileName.ToCharArray());
+                        binaryWriter.Write(mediaHeader);
                     }
 
                     // (pad to nearest 4)
-                    var padSize = offsetToChannelData - (fixedHeaderLength + mediaHeaderTotalLength);
+                    var padSize = _dataOffset - (_fixedHeaderLength + mediaHeader.Length);
 
                     for (var pad = 0; pad < padSize; pad++)
                     {
                         binaryWriter.Write((byte)0);
                     }
 
-                    // Write the event data
+
+                    //Write the event data
+                    if (_sequence.Profile == null)
+                        Debug.WriteLine("profile is null");
+                    List<Channel> outputs = _sequence.Profile == null ? _sequence.OutputChannels : _sequence.Profile.OutputChannels;
+
+                    //testing 
+                    foreach (var channel in outputs)
+                    {
+                        Debug.WriteLine($"{channel.Name} : {channel.OutputChannel} : {(_sequence.Channels.IndexOf(channel))}");
+                    }
+
+
                     for (var period = 0; period < _sequence.TotalEventPeriods; period++)
                     {
-                        for (var channel = 0; channel < _sequence.ChannelCount; channel++)
+                        //for (var channel = 0; channel < _sequence.ChannelCount; channel++)
+                        //{
+                        //    binaryWriter.Write(_sequence.EventValues[channel, period]);
+                        //}
+                        foreach (var channel in outputs)
                         {
-                            binaryWriter.Write(_sequence.EventValues[channel, period]);
+                            binaryWriter.Write(_sequence.EventValues[_sequence.Channels.IndexOf(channel), period]);
                         }
                     }
 
@@ -107,6 +154,37 @@ namespace FPPExport
             }
 
 
+        }
+
+        private byte[] CreateMediaHeader(string mediaFileName)
+        {
+            // per FPP documentation:
+            //-v1.0 +
+            //  -'mf' - Media Filename
+            //    vh[0] = low byte of variable header length
+            //    vh[1] = high byte of variable header length
+            //    vh[2] = 'm'
+            //    vh[3] = 'f'
+            //    vh[4 - Len] = NULL terminated media filename
+
+
+            if (String.IsNullOrEmpty(mediaFileName))
+            {
+                return new byte[0];
+            }
+
+            int HeaderLenght = mediaHeaderSize + mediaFileName.Length + 1;
+            byte[] header = new byte[HeaderLenght];
+            header[0] = (byte)(HeaderLenght % 256);
+            header[1] = (byte)(HeaderLenght / 256);
+            header[2] = (byte)'m';
+            header[3] = (byte)'f';
+            for (int i = 0; i < mediaFileName.Length; i++)
+            {
+                header[i+4] = (byte)(mediaFileName[i] & 0xff);
+            }
+            header[header.Length - 1] = (byte)0;
+            return header;
         }
 
         // thanks to Vixen+ for these helper functions

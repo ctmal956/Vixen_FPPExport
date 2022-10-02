@@ -19,6 +19,11 @@ namespace FPPExport
 
         public bool Execute(EventSequence sequence)
         {
+            if (sequence == null)
+            {
+                System.Windows.Forms.MessageBox.Show("Please open a sequence to export.");
+                return false;
+            }
             var exporter = new FSEQGenerator(sequence);
             exporter.ExportSequence(Paths.SequencePath);
             return false;
